@@ -37,150 +37,147 @@ class EuropeanOption:
         self.__sigma = sigma
         self.__option_type = option_type.lower()
 
-    def _d1(self):
+    def __d1(self):
 
-        if self.T == 0 or self.sigma == 0:
+        if self.__T == 0 or self.__sigma == 0:
             return None
 
         return (
-            np.log(self.S / self.K)
-            + (self.r + 0.5 * self.sigma**2) * self.T
-        ) / (self.sigma * np.sqrt(self.T))
+            np.log(self.__S / self.__K)
+            + (self.__r + 0.5 * self.__sigma**2) * self.__T
+        ) / (self.__sigma * np.sqrt(self.__T))
 
-    def _d2(self):
+    def __d2(self):
 
-        d1 = self._d1()
+        d1 = self.__d1()
 
         if d1 is None:
             return None
 
-        return d1 - self.sigma * np.sqrt(self.T)
+        return d1 - self.__sigma * np.sqrt(self.__T)
 
     def price(self):
         """Calculate the Black-Scholes option price."""
 
-        if self.T == 0:
-            if self.option_type == "call":
-                return max(self.S - self.K, 0)
-            return max(self.K - self.S, 0)
+        if self.__T == 0:
+            if self.__option_type == "call":
+                return max(self.__S - self.__K, 0)
+            return max(self.__K - self.__S, 0)
 
-        if self.sigma == 0:
-            forward_intrinsic = self.S - self.K * np.exp(-self.r * self.T)
-            if self.option_type == "call":
-                return max(forward_intrinsic, 0)
-            return max(-forward_intrinsic, 0)
+        if self.__sigma == 0:
+            discounted_strike = self.__K * np.exp(-self.__r * self.__T)
+            intrinsic = self.__S - discounted_strike
 
-        d1 = self._d1()
-        d2 = self._d2()
+            if self.__option_type == "call":
+                return max(intrinsic, 0)
 
-        if self.option_type == "call":
+            return max(-intrinsic, 0)
+
+        d1 = self.__d1()
+        d2 = self.__d2()
+
+        if self.__option_type == "call":
             return (
-                self.S * norm.cdf(d1)
-                - self.K * np.exp(-self.r * self.T) * norm.cdf(d2)
+                self.__S * norm.cdf(d1)
+                - self.__K * np.exp(-self.__r * self.__T) * norm.cdf(d2)
             )
 
         return (
-            self.K * np.exp(-self.r * self.T) * norm.cdf(-d2)
-            - self.S * norm.cdf(-d1)
+            self.__K * np.exp(-self.__r * self.__T) * norm.cdf(-d2)
+            - self.__S * norm.cdf(-d1)
         )
 
     def delta(self):
         """Calculate option delta."""
 
-        if self.T == 0:
-            if self.option_type == "call":
-                return float(self.S > self.K)
-            return -float(self.S < self.K)
+        if self.__T == 0:
+            if self.__option_type == "call":
+                return float(self.__S > self.__K)
+            return -float(self.__S < self.__K)
 
-        if self.sigma == 0:
-            return self._zero_vol_delta()
+        if self.__sigma == 0:
+            discounted_strike = self.__K * np.exp(-self.__r * self.__T)
 
-        d1 = self._d1()
+            if self.__S == discounted_strike:
+                return 0.5 if self.__option_type == "call" else -0.5
 
-        if self.option_type == "call":
+            if self.__option_type == "call":
+                return float(self.__S > discounted_strike)
+
+            return -float(self.__S < discounted_strike)
+
+        d1 = self.__d1()
+
+        if self.__option_type == "call":
             return norm.cdf(d1)
 
         return norm.cdf(d1) - 1
 
-    def _zero_vol_delta(self):
-        discounted_strike = self.K * np.exp(-self.r * self.T)
-
-        if self.S == discounted_strike:
-            return 0.5 if self.option_type == "call" else -0.5
-
-        if self.option_type == "call":
-            return float(self.S > discounted_strike)
-
-        return -float(self.S < discounted_strike)
-
     def gamma(self):
         """Calculate option gamma."""
 
-        if self.T == 0 or self.sigma == 0:
+        if self.__T == 0 or self.__sigma == 0:
             return 0.0
 
-        d1 = self._d1()
+        d1 = self.__d1()
 
         return norm.pdf(d1) / (
-            self.S * self.sigma * np.sqrt(self.T)
+            self.__S * self.__sigma * np.sqrt(self.__T)
         )
 
     def vega(self):
-        """Calculate option vega per 1.00 change in volatility."""
+        """Calculate option vega."""
 
-        if self.T == 0 or self.sigma == 0:
+        if self.__T == 0 or self.__sigma == 0:
             return 0.0
 
-        d1 = self._d1()
+        d1 = self.__d1()
 
-        return self.S * norm.pdf(d1) * np.sqrt(self.T)
+        return self.__S * norm.pdf(d1) * np.sqrt(self.__T)
 
     def theta(self):
         """Calculate calendar-time theta per year."""
 
-        if self.T == 0:
+        if self.__T == 0 or self.__sigma == 0:
             return 0.0
 
-        if self.sigma == 0:
-            return 0.0
-
-        d1 = self._d1()
-        d2 = self._d2()
+        d1 = self.__d1()
+        d2 = self.__d2()
 
         first_term = (
-            -self.S * norm.pdf(d1) * self.sigma
-            / (2 * np.sqrt(self.T))
+            -self.__S * norm.pdf(d1) * self.__sigma
+            / (2 * np.sqrt(self.__T))
         )
 
-        if self.option_type == "call":
+        if self.__option_type == "call":
             return (
                 first_term
-                - self.r * self.K * np.exp(-self.r * self.T)
+                - self.__r * self.__K * np.exp(-self.__r * self.__T)
                 * norm.cdf(d2)
             )
 
         return (
             first_term
-            + self.r * self.K * np.exp(-self.r * self.T)
+            + self.__r * self.__K * np.exp(-self.__r * self.__T)
             * norm.cdf(-d2)
         )
 
     def rho(self):
-        """Calculate option rho per 1.00 change in interest rate."""
+        """Calculate option rho."""
 
-        if self.T == 0 or self.sigma == 0:
+        if self.__T == 0 or self.__sigma == 0:
             return 0.0
 
-        d2 = self._d2()
+        d2 = self.__d2()
 
-        if self.option_type == "call":
+        if self.__option_type == "call":
             return (
-                self.K * self.T * np.exp(-self.r * self.T)
+                self.__K * self.__T * np.exp(-self.__r * self.__T)
                 * norm.cdf(d2)
             )
 
         return (
-            -self.K * self.T * np.exp(-self.r * self.T)
+            -self.__K * self.__T * np.exp(-self.__r * self.__T)
             * norm.cdf(-d2)
         )
 
@@ -197,7 +194,6 @@ class EuropeanOption:
         }
 
 
-
 if __name__ == "__main__":
 
     # Option parameters
@@ -207,7 +203,7 @@ if __name__ == "__main__":
     r = 0.03
     sigma = 0.40
 
-    # Instantiate a European call
+    # Create a European call option
     call = EuropeanOption(
         S=S,
         K=K,
@@ -218,10 +214,10 @@ if __name__ == "__main__":
     )
 
     # Display results
-    print("European Call Option")
+    print("EUROPEAN CALL OPTION")
     print("--------------------")
-    print(f"Price: {call.price():.4f}")
-    print("\nGreeks:")
 
     for greek, value in call.greeks().items():
-        print(f"{greek.capitalize():<10}: {value:.4f}")
+        print(f"{greek.capitalize():<10}: {value:.6f}")
+
+
