@@ -65,10 +65,9 @@ class Swing_Option:
             # Convert GWh to MWh and add to total flex PV
             flex_pv += c_price * (vol_to_exercise * 1000)
             
-        # Final lower bound price
+        # The final lower bound value is the sum of the mandatory baseline forwards and the flexibility
         total_swing_pv = baseline_pv + flex_pv
         
-        # We return all three so we can check the details
         return total_swing_pv, baseline_pv, flex_pv
 
 if __name__ == "__main__":
