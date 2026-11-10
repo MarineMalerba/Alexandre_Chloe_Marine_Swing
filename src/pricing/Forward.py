@@ -55,7 +55,8 @@ class Forward:
         for i in range(len(ttf_curve)):
             # Get the price and maturity both at position i
             daily_price = ttf_curve[i]
-            maturity = T_list[i]
+            maturity_date = T_list[i]
+            maturity = len(T_list[:i])/365
             total_value += self.price(daily_price, rf_rate, maturity)
         return total_value
 
