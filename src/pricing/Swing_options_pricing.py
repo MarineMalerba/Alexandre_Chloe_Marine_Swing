@@ -34,7 +34,9 @@ class Swing_Option:
         daily_calls = []
         for i in range(nb_days):
             daily_price = ttf_curve[i]
-            maturity = T_list[i]
+            
+            maturity_date = T_list[i]
+            maturity = len(T_list[:i])/365
             
             # We instantiate the option for that specific day
             opt = EuropeanOption(S=daily_price, K=self.K, T=maturity, r=rf_rate, sigma=sigma, option_type="call")
