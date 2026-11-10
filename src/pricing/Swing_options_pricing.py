@@ -1,7 +1,7 @@
 import numpy as np
 # from forward_final - no file with this name
 import Forward
-from european_option import EuropeanOption
+from european_options import EuropeanOption
 
 class Swing_Option:
   """
