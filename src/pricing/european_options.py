@@ -17,6 +17,8 @@ class EuropeanOption:
     """
 
     def __init__(self, S, K, T, r, sigma, option_type="call"):
+        S=float(S)
+        K=float(K)
         if S <= 0 or K <= 0:
             raise ValueError("S and K must be positive.")
 
