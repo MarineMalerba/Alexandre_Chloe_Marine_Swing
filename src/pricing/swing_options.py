@@ -1,13 +1,18 @@
 import numpy as np
-from Forward import Forward
+from forward import Forward
 from european_options import EuropeanOption
 
 class Swing_Option:
   """
   We define a method to price lower bound call swing options, options that we can define as "take or pay options".
   We use the Keppo method here.
+  option_type = "call": the holder buys gas at K (long forward on qmin + strip of calls on qmax - qmin)
+  option_type = "put" : the holder sells gas at K (short forward on qmin + strip of puts on qmax - qmin)
   """
-  def __init__(self, K, qmin, qmax, Qn):
+  def __init__(self, K, qmin, qmax, Qn, option_type="call"):
+        if option_type.lower() not in ["call", "put"]:
+            raise ValueError("option_type must be 'call' or 'put'.")
+        self.option_type = option_type.lower()
         self.K = K
         self.qmin = qmin
         self.qmax = qmax
@@ -21,6 +26,9 @@ class Swing_Option:
         # We compute the guaranteed qmin volume given by the forwards
         fw = Forward(self.K, self.qmin)
         baseline_pv = fw.valuation(ttf_curve, rf_rate, T_list)
+        # For a put swing the mandatory qmin volume is sold at K, so we are short the forward: (K - F) * qmin
+        if self.option_type == "put":
+            baseline_pv = -baseline_pv
         
         # Then check how much flexibility volume we have left after having taken into account qmin
         total_mandatory_vol = self.qmin * nb_days
@@ -39,7 +47,7 @@ class Swing_Option:
             maturity = len(T_list[:i])/365
             
             # We instantiate the option for that specific day
-            opt = EuropeanOption(S=daily_price, K=self.K, T=maturity, r=rf_rate, sigma=sigma, option_type="call")
+            opt = EuropeanOption(S=daily_price, K=self.K, T=maturity, r=rf_rate, sigma=sigma, option_type=self.option_type)
             # Append the price and the index 'i' to remember which day it was
             daily_calls.append((opt.price(), i))
             
@@ -88,7 +96,16 @@ if __name__ == "__main__":
     #Final Pricing
     total_val, base_val, flex_val = swing_pricer.valuation(sample_curve, rf, sample_maturities, IV_ATM)
     
-    print("Test swing")
+    print("Test swing call")
     print("total:", total_val)
     print("base:", base_val)
     print("flex:", flex_val)
+
+    # Put swing: same Keppo method, short forward on qmin + strip of puts on (qmax - qmin)
+    put_pricer = Swing_Option(K_ATM, qmin, qmax, Qn, option_type="put")
+    total_put, base_put, flex_put = put_pricer.valuation(sample_curve, rf, sample_maturities, IV_ATM)
+
+    print("Test swing put")
+    print("total:", total_put)
+    print("base:", base_put)
+    print("flex:", flex_put)
